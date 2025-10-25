@@ -298,6 +298,138 @@ class APIKeyResponse(BaseModel):
     is_active: bool = True
 
 
+# Document Processing Models for LocalAgentCore Integration
+
+class DocumentProcessingStatus(str, Enum):
+    """Document processing status values"""
+    UPLOADED = "uploaded"
+    PROCESSING = "processing"
+    COMPLETED = "completed"
+    FAILED = "failed"
+
+
+class DocumentAnalysisRequest(BaseModel):
+    """Document analysis request"""
+    enable_classification: bool = Field(default=True, description="Enable document classification")
+    enable_contradiction_detection: bool = Field(default=True, description="Enable contradiction detection")
+    enable_remedy_generation: bool = Field(default=True, description="Enable remedy generation")
+    analysis_options: Optional[Dict[str, Any]] = Field(default=None, description="Additional analysis options")
+    metadata: Optional[Dict[str, Any]] = Field(default=None, description="Document metadata")
+
+
+class DocumentUploadRequest(BaseModel):
+    """Document upload request model"""
+    filename: str = Field(..., description="Original filename")
+    content_type: str = Field(..., description="MIME type of the file")
+    metadata: Optional[Dict[str, Any]] = Field(default=None, description="Additional metadata")
+
+
+class DocumentAnalysisResponse(BaseModel):
+    """Comprehensive document analysis response"""
+    document_id: str
+    status: DocumentProcessingStatus
+    message: Optional[str] = None
+    
+    # Analysis results
+    analysis_id: Optional[str] = None
+    document_type: Optional[str] = None
+    confidence_score: Optional[float] = None
+    processing_time: Optional[float] = None
+    
+    # Counts
+    issues_found: int = 0
+    remedies_suggested: int = 0
+    
+    # Detailed results
+    classification: Optional[Dict[str, Any]] = None
+    issues: List[Dict[str, Any]] = Field(default_factory=list)
+    remedies: List[Dict[str, Any]] = Field(default_factory=list)
+    analysis_report: Optional[Dict[str, Any]] = None
+    
+    # Timestamps
+    completed_at: Optional[datetime] = None
+    metadata: Optional[Dict[str, Any]] = None
+
+
+class DocumentListResponse(BaseModel):
+    """Document list response"""
+    documents: List[Dict[str, Any]] = Field(default_factory=list)
+    total_count: int = 0
+    page: int = 1
+    page_size: int = 20
+    has_more: bool = False
+
+
+class ContradictionDetail(BaseModel):
+    """Detailed contradiction information"""
+    id: str
+    type: str
+    severity: str
+    title: str
+    description: str
+    confidence: float
+    location: Dict[str, Any] = Field(default_factory=dict)
+    suggestions: List[str] = Field(default_factory=list)
+    metadata: Dict[str, Any] = Field(default_factory=dict)
+
+
+class RemedyDetail(BaseModel):
+    """Detailed remedy information"""
+    id: str
+    title: str
+    description: str
+    category: str
+    priority: str
+    implementation_steps: List[str] = Field(default_factory=list)
+    legal_basis: List[str] = Field(default_factory=list)
+    estimated_impact: Optional[str] = None
+    metadata: Dict[str, Any] = Field(default_factory=dict)
+
+
+class DocumentClassificationResponse(BaseModel):
+    """Document classification response"""
+    document_type: str
+    confidence: float
+    sub_categories: List[str] = Field(default_factory=list)
+    features_analyzed: Dict[str, Any] = Field(default_factory=dict)
+    metadata: Dict[str, Any] = Field(default_factory=dict)
+
+
+class AnalysisStatsResponse(BaseModel):
+    """Analysis statistics response"""
+    total_documents: int = 0
+    documents_by_type: Dict[str, int] = Field(default_factory=dict)
+    issues_by_severity: Dict[str, int] = Field(default_factory=dict)
+    remedies_by_category: Dict[str, int] = Field(default_factory=dict)
+    average_confidence: float = 0.0
+    average_processing_time: float = 0.0
+    processing_success_rate: float = 0.0
+
+
+class BulkAnalysisRequest(BaseModel):
+    """Bulk document analysis request"""
+    document_ids: List[str] = Field(..., description="List of document IDs to analyze")
+    analysis_options: Optional[Dict[str, Any]] = Field(default=None, description="Analysis configuration")
+    priority: str = Field(default="normal", description="Processing priority")
+
+
+class BulkAnalysisResponse(BaseModel):
+    """Bulk analysis response"""
+    batch_id: str
+    total_documents: int
+    status: str = "initiated"
+    estimated_completion: Optional[datetime] = None
+    results_url: Optional[str] = None
+
+
+class AnalysisExportRequest(BaseModel):
+    """Analysis results export request"""
+    document_ids: Optional[List[str]] = Field(default=None, description="Specific documents to export")
+    format: str = Field(default="json", description="Export format (json, csv, pdf)")
+    include_full_text: bool = Field(default=False, description="Include document full text")
+    date_range: Optional[Dict[str, datetime]] = Field(default=None, description="Date range filter")
+
+
 # Audit Models
 class AuditLogEntry(BaseModel):
     """Audit log entry"""

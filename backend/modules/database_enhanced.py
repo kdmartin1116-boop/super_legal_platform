@@ -149,6 +149,98 @@ class EducationProgress(Base):
     progress_data: Mapped[Optional[dict]] = mapped_column(JSON, nullable=True)
 
 
+# New models for LocalAgentCore integration
+
+class DocumentRecord(Base):
+    """Document records for LocalAgentCore processing"""
+    __tablename__ = "document_records"
+    
+    filename: Mapped[str] = mapped_column(String(255))
+    content_type: Mapped[str] = mapped_column(String(100))
+    file_size: Mapped[int] = mapped_column(Integer)
+    file_path: Mapped[str] = mapped_column(String(500))
+    text_content: Mapped[str] = mapped_column(Text)
+    
+    # Processing status
+    processing_status: Mapped[str] = mapped_column(String(50), default="uploaded")
+    error_message: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
+    
+    # User and timestamps
+    uploaded_by: Mapped[str] = mapped_column(String(100), index=True)
+    upload_timestamp: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
+    last_analyzed: Mapped[Optional[datetime]] = mapped_column(DateTime, nullable=True)
+    
+    # Metadata
+    metadata_json: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
+
+
+class AnalysisResultRecord(Base):
+    """Analysis results from LocalAgentCore"""
+    __tablename__ = "analysis_results"
+    
+    document_id: Mapped[str] = mapped_column(String(100), index=True)
+    analyzer_type: Mapped[str] = mapped_column(String(100))
+    analyzer_version: Mapped[str] = mapped_column(String(20))
+    
+    # Classification results
+    document_type: Mapped[Optional[str]] = mapped_column(String(100), nullable=True)
+    confidence_score: Mapped[float] = mapped_column(default=0.0)
+    
+    # Processing metrics
+    processing_time: Mapped[float] = mapped_column(default=0.0)
+    tokens_analyzed: Mapped[int] = mapped_column(Integer, default=0)
+    status: Mapped[str] = mapped_column(String(50), default="completed")
+    
+    # Detailed results
+    classification_json: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
+    analysis_report: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
+    metadata_json: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
+    
+    # User and timestamps
+    created_by: Mapped[str] = mapped_column(String(100))
+    completed_at: Mapped[Optional[datetime]] = mapped_column(DateTime, nullable=True)
+
+
+class LegalIssueRecord(Base):
+    """Legal issues detected by LocalAgentCore"""
+    __tablename__ = "legal_issues"
+    
+    analysis_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("analysis_results.id"), index=True)
+    
+    # Issue details
+    issue_type: Mapped[str] = mapped_column(String(50))
+    severity: Mapped[str] = mapped_column(String(20))
+    title: Mapped[str] = mapped_column(String(255))
+    description: Mapped[str] = mapped_column(Text)
+    confidence: Mapped[float] = mapped_column(default=0.0)
+    
+    # Location and metadata
+    location_json: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
+    suggestions_json: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
+    metadata_json: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
+
+
+class RemedyRecord(Base):
+    """Remedies suggested by LocalAgentCore"""
+    __tablename__ = "remedies"
+    
+    analysis_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("analysis_results.id"), index=True)
+    
+    # Remedy details
+    title: Mapped[str] = mapped_column(String(255))
+    description: Mapped[str] = mapped_column(Text)
+    category: Mapped[str] = mapped_column(String(100))
+    priority: Mapped[str] = mapped_column(String(20))
+    
+    # Implementation guidance
+    implementation_steps_json: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
+    legal_basis_json: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
+    estimated_impact: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
+    
+    # Metadata
+    metadata_json: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
+
+
 class AuditLog(Base):
     """Audit log for tracking user actions"""
     __tablename__ = "audit_logs"

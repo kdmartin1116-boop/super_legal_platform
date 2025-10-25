@@ -18,6 +18,7 @@ from modules.error_handler import ErrorHandler
 
 # Import API routers
 from api.document import router as document_router
+from api.document_processing import router as document_processing_router
 from api.education import router as education_router
 from api.generation import router as generation_router
 from api.research import router as research_router
@@ -167,6 +168,7 @@ def create_app() -> FastAPI:
     
     # Include routers
     app.include_router(document_router, prefix="/api/v1/document", tags=["Document Processing"])
+    app.include_router(document_processing_router, tags=["LocalAgentCore Document Analysis"])
     app.include_router(education_router, prefix="/api/v1/education", tags=["Education"])
     app.include_router(generation_router, prefix="/api/v1/generation", tags=["Document Generation"])
     app.include_router(research_router, prefix="/api/v1/research", tags=["Legal Research"])

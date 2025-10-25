@@ -41,18 +41,20 @@ class DocumentAnalyzer(BaseAnalyzer):
     VERSION = "1.0.0"
     
     def __init__(self, config: Optional[Dict[str, Any]] = None):
-        super().__init__(config)
-        
-        # Initialize component analyzers
+        # Initialize component analyzers first
         self.classifier: Optional[InstrumentClassifier] = None
         self.contradiction_detector: Optional[ContradictionDetector] = None
         self.remedy_compiler: Optional[RemedyCompiler] = None
         
-        # Analysis configuration
-        self.enable_classification = self.config.get("enable_classification", True)
-        self.enable_contradiction_detection = self.config.get("enable_contradiction_detection", True)
-        self.enable_remedy_generation = self.config.get("enable_remedy_generation", True)
-        self.parallel_processing = self.config.get("parallel_processing", True)
+        # Set analysis configuration before calling super().__init__()
+        if config is None:
+            config = {}
+        self.enable_classification = config.get("enable_classification", True)
+        self.enable_contradiction_detection = config.get("enable_contradiction_detection", True)
+        self.enable_remedy_generation = config.get("enable_remedy_generation", True)
+        self.parallel_processing = config.get("parallel_processing", True)
+        
+        super().__init__(config)
         
         # Cache for results
         self._analysis_cache: Dict[str, AnalysisResult] = {}

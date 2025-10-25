@@ -1,6 +1,7 @@
 import os
 from typing import List, Optional
-from pydantic import BaseSettings, Field, validator
+from pydantic import Field, validator
+from pydantic_settings import BaseSettings
 from pathlib import Path
 
 
@@ -15,9 +16,9 @@ class Settings(BaseSettings):
     project_root: Path = Field(default_factory=lambda: Path(__file__).parent.parent)
     backend_root: Path = Field(default_factory=lambda: Path(__file__).parent)
     
-    # Security
-    secret_key: str
-    jwt_secret_key: str
+    # Security  
+    secret_key: str = Field(default="dev-secret-key-change-in-production", env="SECRET_KEY")
+    jwt_secret_key: str = Field(default="dev-jwt-secret-change-in-production", env="JWT_SECRET_KEY")
     jwt_algorithm: str = "HS256"
     jwt_expire_minutes: int = 30
     
