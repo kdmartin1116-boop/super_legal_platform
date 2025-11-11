@@ -172,12 +172,44 @@ async def get_analysis_results(
         raise HTTPException(status_code=500, detail=f"Failed to get results: {str(e)}")
 
 
+@router.post("/prompts/render", response_model=DataResponse)
+async def render_prompt(
+    payload: Dict[str, Any],
+    current_user = Depends(get_current_user),
+    doc_service: DocumentProcessingService = Depends(get_document_processing_service)
+):
+    """Render a named prompt template with context supplied in the request body.
+
+    Request JSON shape:
+    {
+        "template_name": "credit_analysis",
+        "context": { "document_text": "...", "previous_analysis": "..." }
+    }
+    """
+    try:
+        template_name = payload.get("template_name")
+        context = payload.get("context", {})
+
+        if not template_name:
+            raise HTTPException(status_code=400, detail="'template_name' is required")
+
+        rendered = doc_service.render_prompt(template_name, context)
+
+        return DataResponse(data={"rendered": rendered}, message="Prompt rendered successfully")
+
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Failed to render prompt: {str(e)}")
+
+
 @router.get("/", response_model=DocumentListResponse)
 async def list_documents(
     page: int = Query(1, ge=1, description="Page number"),
     page_size: int = Query(20, ge=1, le=100, description="Items per page"),
     status: Optional[DocumentProcessingStatus] = Query(None, description="Filter by status"),
     document_type: Optional[str] = Query(None, description="Filter by document type"),
+    search: Optional[str] = Query(None, description="Search term for filtering by filename"),
     current_user = Depends(get_current_user),
     db: AsyncSession = Depends(database_manager.get_session)
 ):
@@ -194,6 +226,9 @@ async def list_documents(
         
         if status:
             query = query.where(DocumentRecord.processing_status == status.value)
+
+        if search:
+            query = query.where(DocumentRecord.filename.ilike(f"%{search}%"))
         
         # Count total items
         count_query = select(func.count()).select_from(

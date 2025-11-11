@@ -1,0 +1,24 @@
+name: Prompt templates smoke checks
+
+on:
+  push:
+    branches: [ feature/integrate-external-prompts, main ]
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  prompt-check:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.10'
+
+      - name: Run prompt smoke checks
+        run: |
+          python -V
+          python scripts/check_prompts.py
