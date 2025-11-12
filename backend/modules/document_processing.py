@@ -425,6 +425,89 @@ class DocumentProcessingService:
             raise ValueError("Document not found or access denied")
 
 
+    async def render_prompt_with_analysis(
+        self,
+        document_id: str,
+        user_id: str,
+        db: AsyncSession,
+        template_name: str,
+        extra_context: Optional[Dict[str, Any]] = None,
+    ) -> str:
+        """Fetch latest analysis for a document and render a prompt template.
+
+        The resulting context will include:
+        - document_text: the stored text_content
+        - previous_analysis: a short summary compiled from analysis results
+        - issues: list of issue summaries
+        - remedies: list of remedy summaries
+        - analysis_summary: document_type, confidence_score, processing_time
+
+        This method is async because it reads from the DB.
+        """
+        # Validate document ownership
+        document = await db.get(DocumentRecord, document_id)
+        if not document or document.uploaded_by != user_id:
+            raise ValueError("Document not found or access denied")
+
+        # Get latest analysis
+        analysis_q = await db.execute(
+            AnalysisResultRecord.select()
+            .where(AnalysisResultRecord.document_id == document_id)
+            .order_by(AnalysisResultRecord.created_at.desc())
+            .limit(1)
+        )
+        analysis = analysis_q.scalar_one_or_none()
+
+        # Build context
+        context: Dict[str, Any] = extra_context.copy() if extra_context else {}
+        context.setdefault("document_text", document.text_content or "")
+
+        if analysis:
+            # basic analysis_summary
+            context.setdefault("analysis_summary", {
+                "document_type": analysis.document_type,
+                "confidence_score": analysis.confidence_score,
+                "processing_time": analysis.processing_time,
+            })
+
+            # fetch issues and remedies
+            issues_q = await db.execute(LegalIssueRecord.select().where(LegalIssueRecord.analysis_id == analysis.id))
+            remedies_q = await db.execute(RemedyRecord.select().where(RemedyRecord.analysis_id == analysis.id))
+
+            issues = [
+                {
+                    "id": str(i.id),
+                    "title": i.title,
+                    "severity": i.severity,
+                    "description": i.description,
+                    "confidence": i.confidence,
+                }
+                for i in issues_q.scalars().all()
+            ]
+
+            remedies = [
+                {
+                    "id": str(r.id),
+                    "title": r.title,
+                    "category": r.category,
+                    "priority": r.priority,
+                    "implementation_steps": json.loads(r.implementation_steps_json) if r.implementation_steps_json else [],
+                }
+                for r in remedies_q.scalars().all()
+            ]
+
+            context.setdefault("previous_analysis", json.dumps(context["analysis_summary"]))
+            context.setdefault("issues", issues)
+            context.setdefault("remedies", remedies)
+        else:
+            context.setdefault("analysis_summary", {})
+            context.setdefault("previous_analysis", "")
+            context.setdefault("issues", [])
+            context.setdefault("remedies", [])
+
+        # Render using synchronous render_prompt
+        return self.render_prompt(template_name, context)
+
 
         if os.path.exists(document.file_path):
 
